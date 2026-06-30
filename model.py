@@ -11,7 +11,11 @@ from diffusers import (
 from peft import PeftModel
 from PIL import Image
 
-DEVICE = "mps"
+DEVICE = (
+    "cuda" if torch.cuda.is_available()
+    else "mps" if torch.backends.mps.is_available()
+    else "cpu"
+)
 MODEL_ID = "runwayml/stable-diffusion-v1-5"
 LORA_PATH = os.path.join(os.path.dirname(__file__), "lora_animal", "epoch_7")
 CONTROLNET_ID = "lllyasviel/sd-controlnet-scribble"
@@ -19,13 +23,15 @@ CONTROLNET_ID = "lllyasviel/sd-controlnet-scribble"
 
 @st.cache_resource(show_spinner=False)
 def load_pipeline():
+    token = st.secrets.get("HF_TOKEN", None)
+
     pipe_base = StableDiffusionPipeline.from_pretrained(
-        MODEL_ID, torch_dtype=torch.float32
+        MODEL_ID, torch_dtype=torch.float32, token=token
     )
     pipe_base.unet = PeftModel.from_pretrained(pipe_base.unet, LORA_PATH)
 
     controlnet = ControlNetModel.from_pretrained(
-        CONTROLNET_ID, torch_dtype=torch.float32
+        CONTROLNET_ID, torch_dtype=torch.float32, token=token
     )
 
     pipe = StableDiffusionControlNetPipeline(
@@ -40,9 +46,8 @@ def load_pipeline():
         requires_safety_checker=False,
     )
     pipe = pipe.to(DEVICE)
-    # M1 16GB에서 fp32 모델(~6GB) 로드 시 메모리 압박 완화
-    pipe.enable_attention_slicing(1)  # 어텐션 연산을 1헤드씩 분할 → 피크 메모리 ~40% 절감
-    pipe.enable_vae_slicing()         # VAE 디코딩을 타일로 분할 → OOM 방지
+    pipe.enable_attention_slicing(1)
+    pipe.enable_vae_slicing()
     return pipe
 
 

@@ -1,4 +1,5 @@
 torch
+torchvision
 diffusers>=0.38.0
 transformers>=4.45.0
 peft==0.19.1
@@ -6,3 +7,5 @@ accelerate>=0.34.0
 safetensors
 streamlit
 Pillow
+matplotlib
+numpy

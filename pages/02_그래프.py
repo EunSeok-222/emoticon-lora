@@ -1,6 +1,8 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+import matplotlib
+matplotlib.rcParams.update({'font.family': 'AppleGothic', 'axes.unicode_minus': False})
 
 st.set_page_config(page_title="성능 그래프", page_icon="📈", layout="centered",
                    initial_sidebar_state="collapsed")
@@ -8,11 +10,11 @@ st.set_page_config(page_title="성능 그래프", page_icon="📈", layout="cent
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
 .stApp {
     background-color: #faf8f3;
     background-image: radial-gradient(circle, #ccc8bf 1px, transparent 1px);
-    background-size: 20px 20px; font-family: 'Caveat', cursive;
+    background-size: 20px 20px; font-family: 'Noto Sans KR', sans-serif;
 }
 .main .block-container { padding-top: 1.2rem; max-width: 820px; }
 
@@ -22,7 +24,7 @@ st.markdown("""
 [data-testid="collapsedControl"] { display: none !important; }
 
 a[data-testid="stPageLink-NavLink"] {
-    font-family: 'Caveat', cursive !important;
+    font-family: 'Noto Sans KR', sans-serif !important;
     font-size: 1.05rem !important; font-weight: 700 !important;
     background: white !important; border: 2px solid #222 !important;
     border-radius: 3px 5px 4px 3px / 4px 3px 5px 4px !important;
@@ -51,8 +53,8 @@ a[data-testid="stPageLink-NavLink"][aria-current="page"] {
     background:rgba(255,230,50,.88); border:1.5px solid #c8a200; border-radius:2px;
 }
 .header-mascot { font-size:3.8rem; flex-shrink:0; transform:rotate(-5deg); }
-.header-card h1 { font-family:'Caveat',cursive; font-size:2.3rem; font-weight:900; color:#222; margin:0 0 4px; }
-.header-card .sub { font-family:'Caveat',cursive; font-size:1.1rem; color:#777; }
+.header-card h1 { font-family:'Noto Sans KR', sans-serif; font-size:2.3rem; font-weight:900; color:#222; margin:0 0 4px; }
+.header-card .sub { font-family:'Noto Sans KR', sans-serif; font-size:1.1rem; color:#777; }
 .doodle-line { text-align:center; font-size:1rem; color:#d0cbbf; letter-spacing:8px; margin:6px 0 14px; }
 .section-card {
     background: white; border: 2.5px solid #222;
@@ -61,9 +63,9 @@ a[data-testid="stPageLink-NavLink"][aria-current="page"] {
     box-shadow: 5px 5px 0 #222;
 }
 .section-card.r2 { transform: rotate(-0.15deg); }
-.section-card h2 { font-family:'Caveat',cursive; font-size:1.7rem; font-weight:900;
+.section-card h2 { font-family:'Noto Sans KR', sans-serif; font-size:1.7rem; font-weight:900;
     color:#222; margin:0 0 14px; border-bottom:2px dashed #ccc; padding-bottom:8px; }
-.info-box { font-family:'Caveat',cursive; font-size:.95rem; color:#555;
+.info-box { font-family:'Noto Sans KR', sans-serif; font-size:.95rem; color:#555;
     margin-top:10px; padding:10px 14px; background:#fff9c4;
     border-left:3px solid #ffc107; border-radius:2px; line-height:1.6; }
 .metric-row { display:flex; gap:10px; margin-top:6px; flex-wrap:wrap; }
@@ -71,9 +73,9 @@ a[data-testid="stPageLink-NavLink"][aria-current="page"] {
     background:white; border:2.5px solid #222;
     border-radius:3px 5px 4px 3px / 4px 3px 5px 4px;
     padding:12px 8px; box-shadow:3px 3px 0 #222; }
-.metric-card .mv { font-family:'Caveat',cursive; font-size:1.8rem; font-weight:900; }
-.metric-card .ml { font-family:'Caveat',cursive; font-size:.85rem; color:#777; margin-top:3px; }
-.footer { text-align:center; font-family:'Caveat',cursive; font-size:.9rem;
+.metric-card .mv { font-family:'Noto Sans KR', sans-serif; font-size:1.8rem; font-weight:900; }
+.metric-card .ml { font-family:'Noto Sans KR', sans-serif; font-size:.85rem; color:#777; margin-top:3px; }
+.footer { text-align:center; font-family:'Noto Sans KR', sans-serif; font-size:.9rem;
     color:#c0bab0; margin-top:28px; line-height:1.9; }
 </style>
 """, unsafe_allow_html=True)
@@ -91,9 +93,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 nc1, nc2, nc3 = st.columns(3)
-with nc1: st.page_link("app.py", label="✏️ 이모티콘 메이커", use_container_width=True)
-with nc2: st.page_link("pages/01_학습_리포트.py", label="📊 학습 리포트", use_container_width=True)
-with nc3: st.page_link("pages/02_그래프.py", label="📈 성능 그래프", use_container_width=True)
+with nc1: st.page_link("app.py",                      label="✏️ 이모티콘 메이커", use_container_width=True)
+with nc2: st.page_link("pages/01_학습_리포트.py",     label="📊 학습 리포트",     use_container_width=True)
+with nc3: st.page_link("pages/02_그래프.py",          label="📈 성능 그래프",     use_container_width=True)
+nr1, nr2, nr3 = st.columns(3)
+with nr1: st.page_link("pages/03_EDA_데이터분석.py", label="🔍 데이터 분석",     use_container_width=True)
+with nr2: st.page_link("pages/04_가중치분석.py",      label="⚖️ 가중치 분석",    use_container_width=True)
+with nr3: st.page_link("pages/05_생성품질.py",        label="🖼️ 생성 품질",      use_container_width=True)
 
 # ── 핵심 수치 요약 ────────────────────────────────────────────────────────────
 st.markdown("""
@@ -244,11 +250,11 @@ plt.close(fig)
 # 품질 평가 테이블
 rows_html = "".join([
     f'<tr>'
-    f'<td style="font-family:Caveat,cursive;padding:7px 14px;border:1.5px solid #ddd;'
+    f'<td style="font-family:'Noto Sans KR', sans-serif;padding:7px 14px;border:1.5px solid #ddd;'
     f'{"font-weight:700;color:#FF4081;" if e==7 else ""}">Epoch {e}</td>'
-    f'<td style="font-family:Caveat,cursive;padding:7px 14px;border:1.5px solid #ddd;">'
+    f'<td style="font-family:'Noto Sans KR', sans-serif;padding:7px 14px;border:1.5px solid #ddd;">'
     f'{"<b>" if e in (6,7) else ""}{exp2_loss[e-1]:.4f}{"</b>" if e in (6,7) else ""}</td>'
-    f'<td style="font-family:Caveat,cursive;padding:7px 14px;border:1.5px solid #ddd;background:{c};">{q}</td>'
+    f'<td style="font-family:'Noto Sans KR', sans-serif;padding:7px 14px;border:1.5px solid #ddd;background:{c};">{q}</td>'
     f'</tr>'
     for e, (q, c) in quality.items()
 ])
@@ -256,9 +262,9 @@ st.markdown(f"""
 <br>
 <table style="width:100%;border-collapse:collapse;font-size:1rem;">
 <tr>
-  <th style="font-family:Caveat,cursive;background:#222;color:white;padding:8px 14px;border:2px solid #222;text-align:left;">Epoch</th>
-  <th style="font-family:Caveat,cursive;background:#222;color:white;padding:8px 14px;border:2px solid #222;text-align:left;">Avg Loss</th>
-  <th style="font-family:Caveat,cursive;background:#222;color:white;padding:8px 14px;border:2px solid #222;text-align:left;">시각 품질 평가</th>
+  <th style="font-family:'Noto Sans KR', sans-serif;background:#222;color:white;padding:8px 14px;border:2px solid #222;text-align:left;">Epoch</th>
+  <th style="font-family:'Noto Sans KR', sans-serif;background:#222;color:white;padding:8px 14px;border:2px solid #222;text-align:left;">Avg Loss</th>
+  <th style="font-family:'Noto Sans KR', sans-serif;background:#222;color:white;padding:8px 14px;border:2px solid #222;text-align:left;">시각 품질 평가</th>
 </tr>
 {rows_html}
 </table>

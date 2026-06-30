@@ -1,6 +1,8 @@
 import os
 import streamlit as st
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rcParams.update({'font.family': 'AppleGothic', 'axes.unicode_minus': False})
 from PIL import Image
 
 st.set_page_config(page_title="학습 리포트", page_icon="📊", layout="centered",
@@ -12,13 +14,13 @@ SAMPLES_DIR = os.path.join(BASE_DIR, "animal_samples")
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap');
 
 .stApp {
     background-color: #faf8f3;
     background-image: radial-gradient(circle, #ccc8bf 1px, transparent 1px);
     background-size: 20px 20px;
-    font-family: 'Caveat', cursive;
+    font-family: 'Noto Sans KR', sans-serif;
 }
 .main .block-container { padding-top: 1.2rem; max-width: 820px; }
 
@@ -28,7 +30,7 @@ st.markdown("""
 [data-testid="collapsedControl"] { display: none !important; }
 
 a[data-testid="stPageLink-NavLink"] {
-    font-family: 'Caveat', cursive !important;
+    font-family: 'Noto Sans KR', sans-serif !important;
     font-size: 1.05rem !important; font-weight: 700 !important;
     background: white !important; border: 2px solid #222 !important;
     border-radius: 3px 5px 4px 3px / 4px 3px 5px 4px !important;
@@ -58,8 +60,8 @@ a[data-testid="stPageLink-NavLink"][aria-current="page"] {
     background:rgba(255,230,50,.88); border:1.5px solid #c8a200; border-radius:2px;
 }
 .header-mascot { font-size:3.8rem; flex-shrink:0; transform:rotate(-5deg); }
-.header-card h1 { font-family:'Caveat',cursive; font-size:2.3rem; font-weight:900; color:#222; margin:0 0 4px; }
-.header-card .sub { font-family:'Caveat',cursive; font-size:1.1rem; color:#777; }
+.header-card h1 { font-family:'Noto Sans KR', sans-serif; font-size:2.3rem; font-weight:900; color:#222; margin:0 0 4px; }
+.header-card .sub { font-family:'Noto Sans KR', sans-serif; font-size:1.1rem; color:#777; }
 .doodle-line { text-align:center; font-size:1rem; color:#d0cbbf; letter-spacing:8px; margin:6px 0 12px; }
 
 .section-card {
@@ -69,10 +71,10 @@ a[data-testid="stPageLink-NavLink"][aria-current="page"] {
     box-shadow: 5px 5px 0 #222;
 }
 .section-card.r2 { transform: rotate(-0.2deg); }
-.section-card h2 { font-family:'Caveat',cursive; font-size:1.7rem; font-weight:900;
+.section-card h2 { font-family:'Noto Sans KR', sans-serif; font-size:1.7rem; font-weight:900;
     color:#222; margin:0 0 14px; border-bottom:2px dashed #ccc; padding-bottom:8px; }
 
-.compare-table { width:100%; border-collapse:collapse; font-family:'Caveat',cursive; font-size:1.05rem; }
+.compare-table { width:100%; border-collapse:collapse; font-family:'Noto Sans KR', sans-serif; font-size:1.05rem; }
 .compare-table th { background:#222; color:white; padding:8px 14px; border:2px solid #222; text-align:left; }
 .compare-table td { padding:8px 14px; border:2px solid #ddd; vertical-align:top; line-height:1.4; }
 .compare-table tr:nth-child(even) td { background:#f9f7f2; }
@@ -83,9 +85,9 @@ a[data-testid="stPageLink-NavLink"][aria-current="page"] {
 .point-card { flex:1; min-width:160px; background:#fffde7;
     border:2px solid #222; border-radius:3px 5px 4px 3px / 4px 3px 5px 4px;
     padding:12px 14px; box-shadow:3px 3px 0 #222; }
-.point-card .pt { font-family:'Caveat',cursive; font-size:.78rem; font-weight:700;
+.point-card .pt { font-family:'Noto Sans KR', sans-serif; font-size:.78rem; font-weight:700;
     letter-spacing:1.5px; color:#999; margin-bottom:6px; text-transform:uppercase; }
-.point-card .pv { font-family:'Caveat',cursive; font-size:1rem; color:#222; line-height:1.45; }
+.point-card .pv { font-family:'Noto Sans KR', sans-serif; font-size:1rem; color:#222; line-height:1.45; }
 .point-card .pv b { color:#FF4081; }
 
 .timeline { display:flex; align-items:flex-start; margin-top:8px; gap:0; }
@@ -96,23 +98,23 @@ a[data-testid="stPageLink-NavLink"][aria-current="page"] {
     background:white; margin:0 auto 8px; position:relative; z-index:1; }
 .tl-dot.done { background:#FFE835; }
 .tl-dot.best { background:#FF4081; }
-.tl-label { font-family:'Caveat',cursive; font-size:1rem; font-weight:700; color:#222; margin-bottom:2px; }
-.tl-sub { font-family:'Caveat',cursive; font-size:.8rem; color:#888; line-height:1.3; }
-.tl-badge { display:inline-block; font-family:'Caveat',cursive; font-size:.72rem; font-weight:700;
+.tl-label { font-family:'Noto Sans KR', sans-serif; font-size:1rem; font-weight:700; color:#222; margin-bottom:2px; }
+.tl-sub { font-family:'Noto Sans KR', sans-serif; font-size:.8rem; color:#888; line-height:1.3; }
+.tl-badge { display:inline-block; font-family:'Noto Sans KR', sans-serif; font-size:.72rem; font-weight:700;
     padding:2px 8px; border:2px solid #222; border-radius:2px; margin-top:5px; }
 .b-fail { background:#ffebee; color:#c62828; }
 .b-ok   { background:#e8f5e9; color:#2e7d32; }
 .b-best { background:#FF4081; color:white; }
 
-.epoch-label { font-family:'Caveat',cursive; font-size:.95rem; font-weight:700; text-align:center; margin-top:4px; }
-.epoch-badge { font-family:'Caveat',cursive; font-size:.75rem; text-align:center;
+.epoch-label { font-family:'Noto Sans KR', sans-serif; font-size:.95rem; font-weight:700; text-align:center; margin-top:4px; }
+.epoch-badge { font-family:'Noto Sans KR', sans-serif; font-size:.75rem; text-align:center;
     margin-top:2px; padding:1px 5px; border-radius:3px; display:inline-block; width:100%; }
 
-.info-box { font-family:'Caveat',cursive; font-size:.95rem; color:#666;
+.info-box { font-family:'Noto Sans KR', sans-serif; font-size:.95rem; color:#666;
     margin-top:10px; padding:10px 14px; background:#fff9c4;
     border-left:3px solid #ffc107; border-radius:2px; line-height:1.6; }
 
-.footer { text-align:center; font-family:'Caveat',cursive; font-size:.9rem;
+.footer { text-align:center; font-family:'Noto Sans KR', sans-serif; font-size:.9rem;
     color:#c0bab0; margin-top:28px; line-height:1.9; }
 </style>
 """, unsafe_allow_html=True)
@@ -130,9 +132,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 nc1, nc2, nc3 = st.columns(3)
-with nc1: st.page_link("app.py", label="✏️ 이모티콘 메이커", use_container_width=True)
-with nc2: st.page_link("pages/01_학습_리포트.py", label="📊 학습 리포트", use_container_width=True)
-with nc3: st.page_link("pages/02_그래프.py", label="📈 성능 그래프", use_container_width=True)
+with nc1: st.page_link("app.py",                      label="✏️ 이모티콘 메이커", use_container_width=True)
+with nc2: st.page_link("pages/01_학습_리포트.py",     label="📊 학습 리포트",     use_container_width=True)
+with nc3: st.page_link("pages/02_그래프.py",          label="📈 성능 그래프",     use_container_width=True)
+nr1, nr2, nr3 = st.columns(3)
+with nr1: st.page_link("pages/03_EDA_데이터분석.py", label="🔍 데이터 분석",     use_container_width=True)
+with nr2: st.page_link("pages/04_가중치분석.py",      label="⚖️ 가중치 분석",    use_container_width=True)
+with nr3: st.page_link("pages/05_생성품질.py",        label="🖼️ 생성 품질",      use_container_width=True)
 
 # ── 섹션 1: 모델 선택 이유 ───────────────────────────────────────────────────
 st.markdown("""
