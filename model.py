@@ -6,7 +6,7 @@ from diffusers import (
     StableDiffusionControlNetPipeline,
     ControlNetModel,
     StableDiffusionPipeline,
-    UniPCMultistepScheduler,
+    DPMSolverMultistepScheduler,
 )
 from peft import PeftModel
 from PIL import Image
@@ -40,7 +40,7 @@ def load_pipeline():
         tokenizer=pipe_base.tokenizer,
         unet=pipe_base.unet,
         controlnet=controlnet,
-        scheduler=UniPCMultistepScheduler.from_config(pipe_base.scheduler.config),
+        scheduler=DPMSolverMultistepScheduler.from_config(pipe_base.scheduler.config),
         safety_checker=None,
         feature_extractor=None,
         requires_safety_checker=False,
