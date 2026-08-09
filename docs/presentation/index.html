@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>손그림이 이모티콘이 되기까지 — 딥러닝 산출물</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#FFF8F0;--peach:#FFD9C7;--pink:#FFB4C2;--lav:#C9C2F0;
+  --mint:#B8E6D4;--sky:#A8D8F0;--ink:#5A4A52;--soft:#8A7A82;--yellow:#FFE08A;
+  --line:rgba(255,180,194,.25);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{height:100%;font-size:19px}
+body{height:100%}
+body{font-family:'Gowun Dodum',sans-serif;color:var(--ink);line-height:1.6;
+  background:radial-gradient(circle at 20% 15%,var(--peach) 0%,transparent 45%),
+             radial-gradient(circle at 85% 85%,var(--lav) 0%,transparent 45%),var(--cream);
+  display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden}
+
+/* ── 슬라이드 무대 ── */
+.stage{width:min(96vw,1280px);aspect-ratio:16/9;position:relative;
+  background:#fff;border-radius:22px;box-shadow:0 18px 60px rgba(150,120,140,.25);
+  overflow:hidden;border:1px solid var(--line)}
+.slide{position:absolute;inset:0;display:none;flex-direction:column;opacity:0;
+  transition:opacity .45s ease}
+.slide.active{display:flex;opacity:1}
+
+/* ── 헤더 바 ── */
+.hbar{flex:0 0 auto;background:linear-gradient(100deg,var(--peach),var(--pink));
+  padding:11px 40px;display:flex;align-items:center;gap:12px}
+.hbar .num{font-family:'Jua';font-size:.8rem;color:#fff;background:rgba(255,255,255,.35);
+  border-radius:20px;padding:2px 12px}
+.hbar h2{font-family:'Jua';font-size:clamp(1.2rem,2.4vw,1.8rem);color:#fff;
+  text-shadow:0 2px 6px rgba(180,120,140,.35)}
+.body{flex:1;padding:18px 40px 10px;overflow:hidden;display:flex;flex-direction:column}
+
+/* ── 푸터 ── */
+.foot{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;
+  padding:7px 40px;font-size:.68rem;color:var(--soft);border-top:1px solid var(--line)}
+.foot .pg{font-family:'Jua'}
+
+/* ── 공통 텍스트 ── */
+.eyebrow{font-family:'Jua';font-size:.78rem;letter-spacing:.12em;color:var(--pink);text-transform:uppercase;margin-bottom:6px}
+.lead{font-size:clamp(.85rem,1.5vw,1.02rem);color:var(--soft);max-width:760px}
+.sub{font-family:'Jua';font-size:1.05rem;color:var(--ink);margin:2px 0 8px;
+  border-left:5px solid var(--pink);padding-left:10px}
+
+/* ── 2단 레이아웃 ── */
+.split{display:flex;gap:26px;flex:1;align-items:center}
+.split>.col{flex:1;min-width:0}
+.split .imgbox{display:flex;align-items:center;justify-content:center;height:100%}
+.split .imgbox img{max-width:100%;max-height:100%;border-radius:14px;
+  box-shadow:0 8px 24px rgba(150,120,140,.2);object-fit:contain}
+.cap{text-align:center;font-size:.72rem;color:var(--soft);margin-top:7px}
+
+/* ── 카드 ── */
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.card{background:#fff;border-radius:16px;padding:14px 15px;
+  box-shadow:0 4px 14px rgba(180,150,160,.13);border:1.5px solid var(--line);
+  flex:1 1 0;min-width:150px;text-align:left}
+.card .ico{font-size:1.5rem;margin-bottom:4px}
+.card h3{font-family:'Jua';font-size:.92rem;margin-bottom:3px;color:var(--ink)}
+.card p{font-size:.76rem;color:var(--soft);line-height:1.5}
+.card p b,.card p em{color:var(--ink);font-style:normal;font-weight:700}
+.badge{display:inline-block;font-size:.66rem;font-family:'Jua';padding:1px 9px;border-radius:18px;margin-top:6px}
+.bp{background:var(--pink);color:#fff}.bm{background:var(--mint);color:#2e6047}.bl{background:var(--lav);color:#3d3490}.by{background:var(--yellow);color:#7a5a10}
+
+/* ── 파이프라인 ── */
+.pipe{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;margin:6px 0}
+.pipe .st{background:var(--cream);border-radius:14px;padding:12px 14px;
+  box-shadow:0 4px 12px rgba(180,150,160,.12);font-family:'Jua';text-align:center;min-width:96px;font-size:.9rem}
+.pipe .st small{display:block;font-family:'Gowun Dodum';color:var(--soft);font-size:.68rem;margin-top:2px}
+.pipe .arr{font-size:1.3rem;color:var(--pink)}
+
+/* ── 바 차트(데이터) ── */
+.bars{display:flex;flex-direction:column;gap:9px;margin-top:6px;width:100%}
+.br{display:flex;align-items:center;gap:10px}
+.br .lbl{flex:0 0 120px;font-size:.8rem}
+.bar-track{flex:1;height:20px;background:var(--cream);border-radius:10px;overflow:hidden;box-shadow:inset 0 2px 5px rgba(180,150,160,.12)}
+.bar-fill{height:100%;width:0;border-radius:10px;transition:width 1s cubic-bezier(.2,.7,.2,1)}
+.br .num{flex:0 0 64px;text-align:right;font-family:'Jua';font-size:.82rem}
+
+/* ── 표 ── */
+.ptable{width:100%;border-collapse:collapse;font-size:.8rem}
+.ptable th{background:var(--pink);color:#fff;font-family:'Jua';padding:6px 12px;text-align:left}
+.ptable td{padding:5px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45}
+.ptable tr:nth-child(even) td{background:rgba(255,217,199,.12)}
+.ptable td:first-child{font-family:'Jua';color:var(--ink);white-space:nowrap}
+.ptable td:nth-child(2){font-family:'Jua';color:var(--pink)}
+
+/* ── 통계 ── */
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0}
+.stat{background:var(--cream);border-radius:14px;padding:10px 16px;text-align:center;min-width:96px;flex:1}
+.sv{font-family:'Jua';font-size:1.5rem;color:var(--ink)}.sv span{color:var(--pink)}
+.sl{font-size:.7rem;color:var(--soft);margin-top:1px}
+
+/* ── epoch 갤러리 ── */
+.gallery{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:100%}
+.gitem{background:var(--cream);border-radius:10px;padding:5px;text-align:center;border:1.5px solid transparent}
+.gitem img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;display:block}
+.gitem span{font-size:.64rem;color:var(--soft);font-family:'Jua';display:block;margin-top:2px}
+.gitem.best{border-color:var(--pink);background:#fff;box-shadow:0 3px 10px rgba(255,180,194,.4)}
+.gitem.best span{color:var(--pink)}
+.gitem.bad{border-color:#e6a0a0}
+.gitem.bad span{color:#c25a5a}
+
+/* ── 결과 갤러리(4종) ── */
+.results{display:flex;gap:12px;width:100%}
+.results figure{flex:1;background:var(--cream);border-radius:14px;padding:8px;box-shadow:0 4px 12px rgba(180,150,160,.12)}
+.results img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
+.results figcaption{font-size:.68rem;color:var(--soft);text-align:center;margin-top:5px;font-family:'Jua'}
+
+/* ── 트러블/2단 박스 ── */
+.tlist{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.t{background:#fff;border-radius:12px;padding:9px 13px;box-shadow:0 3px 10px rgba(180,150,160,.1);border-left:4px solid var(--pink)}
+.t b{font-family:'Jua';font-size:.82rem}
+.t .fix{color:#3a9a6a;font-weight:700}
+.t .ft{color:var(--soft);font-size:.76rem;display:block;margin-top:1px}
+.twocol{display:flex;gap:16px;margin-top:8px}
+.twocol .box{flex:1;background:var(--cream);border-radius:16px;padding:16px 18px}
+.twocol .box h4{font-family:'Jua';font-size:1rem;margin-bottom:8px;color:var(--ink)}
+.twocol .box.learn{border-top:5px solid var(--mint)}
+.twocol .box.regret{border-top:5px solid var(--lav)}
+.twocol .box p{font-size:.82rem;color:var(--soft);margin-bottom:7px;line-height:1.55}
+
+/* ── 목차 ── */
+.toc{display:grid;grid-template-columns:1fr 1fr;gap:10px 30px;margin-top:8px}
+.toc .ti{display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--cream);border-radius:12px}
+.toc .ti .n{font-family:'Jua';font-size:1.1rem;color:#fff;background:var(--pink);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.toc .ti b{font-family:'Jua';font-size:.92rem;color:var(--ink)}
+.toc .ti small{display:block;font-size:.7rem;color:var(--soft)}
+
+/* ── 칩/태그 ── */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{background:var(--cream);border-radius:10px;padding:5px 13px;font-size:.78rem;font-family:'Jua';border:1.5px solid var(--line)}
+.deploy-box{background:var(--cream);border-radius:16px;padding:16px 20px;margin-top:8px}
+.durl{font-family:'Jua';font-size:.85rem;color:var(--lav);margin-top:4px;word-break:break-all}
+.tag{display:inline-block;background:#fff;border-radius:14px;padding:5px 14px;margin:3px;font-size:.8rem;box-shadow:0 3px 9px rgba(180,150,160,.12);font-family:'Jua'}
+
+/* ── 표지 ── */
+#cover{justify-content:center;align-items:center;text-align:center;
+  background:radial-gradient(circle at 30% 25%,var(--peach) 0%,transparent 55%),
+             radial-gradient(circle at 78% 80%,var(--lav) 0%,transparent 50%),var(--cream)}
+#cover .eyebrow{font-size:.9rem}
+#cover h1{font-family:'Jua';font-size:clamp(2rem,5vw,3.6rem);line-height:1.15;color:var(--ink);margin:10px 0}
+#cover .who{margin-top:18px;font-family:'Jua';color:var(--soft);font-size:.95rem}
+.hero-stage{position:relative;width:220px;height:160px;margin-bottom:6px}
+.scribble-line{fill:none;stroke:var(--soft);stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1400;stroke-dashoffset:1400}
+.cover-on .scribble-line{animation:draw 2.4s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.emoji-cat{opacity:0;transform:scale(.6);transform-origin:center}
+.cover-on .emoji-cat{animation:pop .8s cubic-bezier(.2,1.4,.4,1) forwards;animation-delay:2.6s}
+@keyframes pop{to{opacity:1;transform:scale(1)}}
+.cover-on .scribble-fade{animation:fadeOut .8s ease forwards;animation-delay:2.6s}
+@keyframes fadeOut{to{opacity:.12}}
+.spark{opacity:0}
+.cover-on .spark{animation:spark 1.2s ease forwards;animation-delay:2.6s}
+@keyframes spark{0%{opacity:0;transform:scale(0)}50%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
+
+/* ── 네비게이션 ── */
+.navzone{position:absolute;top:0;bottom:34px;width:18%;z-index:30;cursor:pointer}
+.navzone.left{left:0}.navzone.right{right:0}
+.dots{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:40}
+.dots button{width:8px;height:8px;border-radius:50%;border:none;background:var(--peach);cursor:pointer;padding:0;transition:all .3s}
+.dots button.active{background:var(--pink);transform:scale(1.5)}
+.arrows{display:none}
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .5s,transform .5s}
+.slide.active .reveal{opacity:1;transform:none}
+.slide.active .d1{transition-delay:.05s}.slide.active .d2{transition-delay:.13s}
+.slide.active .d3{transition-delay:.21s}.slide.active .d4{transition-delay:.29s}
+.slide.active .d5{transition-delay:.37s}
+@media(max-width:760px){.body{padding:16px 20px 8px}.hbar{padding:10px 20px}.foot{padding:6px 20px}
+  .split{flex-direction:column;gap:12px}.gallery{grid-template-columns:repeat(4,1fr)}
+  .results{flex-wrap:wrap}.results figure{flex:1 1 40%}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+
+<!-- ===== 1. 표지 ===== -->
+<section class="slide" id="cover">
+  <div class="eyebrow">Deep Learning Portfolio · 산출물 발표</div>
+  <div class="hero-stage" id="heroStage">
+    <svg viewBox="0 0 260 200" width="220" height="160">
+      <g class="scribble-fade">
+        <path class="scribble-line" d="M70 120 Q60 70 90 60 Q100 30 120 55 Q150 30 160 60 Q190 70 180 120 Q185 150 150 160 Q125 170 100 160 Q65 150 70 120 Z M88 62 L80 38 L100 58 M162 60 L172 38 L152 56 M105 110 L95 115 M155 110 L165 115 M120 125 Q125 132 130 125"/>
+      </g>
+      <g class="emoji-cat">
+        <ellipse cx="125" cy="115" rx="58" ry="52" fill="#FFE08A"/>
+        <path d="M80 78 L70 45 L98 70 Z" fill="#FFE08A"/><path d="M170 78 L180 45 L152 70 Z" fill="#FFE08A"/>
+        <path d="M84 74 L78 54 L94 70 Z" fill="#FFB4C2"/><path d="M166 74 L172 54 L156 70 Z" fill="#FFB4C2"/>
+        <circle cx="105" cy="108" r="7" fill="#5A4A52"/><circle cx="145" cy="108" r="7" fill="#5A4A52"/>
+        <circle cx="107" cy="106" r="2.5" fill="#fff"/><circle cx="147" cy="106" r="2.5" fill="#fff"/>
+        <path d="M120 122 Q125 128 130 122" fill="none" stroke="#5A4A52" stroke-width="3" stroke-linecap="round"/>
+        <path d="M118 132 Q125 140 132 132" fill="none" stroke="#5A4A52" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="92" cy="124" r="7" fill="#FFB4C2" opacity=".55"/><circle cx="158" cy="124" r="7" fill="#FFB4C2" opacity=".55"/>
+      </g>
+      <g class="spark" fill="#FFB4C2">
+        <path d="M40 50 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 z"/>
+        <path d="M210 140 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 z"/>
+      </g>
+    </svg>
+  </div>
+  <h1>손그림이<br>이모티콘이 되기까지</h1>
+  <p class="lead" style="margin:0 auto;text-align:center">대충 그린 낙서 한 장을 AI가 귀여운 이모티콘으로 바꿔주는<br>Stable Diffusion v1.5 + LoRA + ControlNet 파인튜닝 프로젝트</p>
+  <div class="who">발표자 : 이은석 &nbsp;·&nbsp; 2026. 07</div>
+</section>
+
+<!-- ===== 2. 목차 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">01</span><h2>목차 (Contents)</h2></div>
+  <div class="body">
+    <div class="toc">
+      <div class="ti reveal d1"><span class="n">1</span><div><b>프로젝트 개요</b><small>문제 정의 · 목표 · 결과 미리보기</small></div></div>
+      <div class="ti reveal d1"><span class="n">2</span><div><b>사용 기술 & 선정 이유</b><small>SD v1.5 · LoRA · ControlNet</small></div></div>
+      <div class="ti reveal d2"><span class="n">3</span><div><b>시스템 아키텍처</b><small>손그림 → 이모티콘 파이프라인</small></div></div>
+      <div class="ti reveal d2"><span class="n">4</span><div><b>데이터셋 수집·정제</b><small>Twemoji 필터링 · 증강</small></div></div>
+      <div class="ti reveal d3"><span class="n">5</span><div><b>학습 설정</b><small>하이퍼파라미터 · 정규화</small></div></div>
+      <div class="ti reveal d3"><span class="n">6</span><div><b>학습 진행 & 곡선 분석</b><small>epoch별 샘플 · loss 그래프</small></div></div>
+      <div class="ti reveal d4"><span class="n">7</span><div><b>문제 발견 & 개선</b><small>과적합 관찰 → 재학습</small></div></div>
+      <div class="ti reveal d4"><span class="n">8</span><div><b>최종 결과 & 분석</b><small>생성 품질 · 가중치 분석</small></div></div>
+      <div class="ti reveal d5"><span class="n">9</span><div><b>배포 & 결론</b><small>HuggingFace Spaces · 느낀 점</small></div></div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">02 / 15</span></div>
+</section>
+
+<!-- ===== 3. 프로젝트 개요 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">02</span><h2>프로젝트 개요</h2></div>
+  <div class="body">
+    <div class="split">
+      <div class="col">
+        <div class="sub reveal d1">프로젝트 목표</div>
+        <p class="lead reveal d1">그림 실력이 없어도, 대충 그린 손그림 한 장을 넣으면 일관된 화풍의<br>나만의 이모티콘으로 바꿔주는 AI 변환 파이프라인을 직접 구현한다.</p>
+        <div class="row">
+          <div class="card reveal d2"><div class="ico">😩</div><h3>문제</h3><p>이모티콘 제작엔 일관된 화풍·그림 실력 필요. 일반인 혼자 하기 어려움.</p><span class="badge bp">Pain</span></div>
+          <div class="card reveal d3"><div class="ico">💡</div><h3>아이디어</h3><p>낙서를 Twemoji 스타일로 통일해주는 AI 변환 파이프라인.</p><span class="badge bl">Idea</span></div>
+          <div class="card reveal d4"><div class="ico">🚀</div><h3>결과</h3><p>10 epoch 학습 + Streamlit 데모를 HuggingFace Spaces에 배포.</p><span class="badge bm">Shipped</span></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="imgbox reveal d2"><img src="emoticon_deck_assets/result_hero.png" alt="스케치→결과"></div>
+        <div class="cap">실제 변환 예시 — 손그림 스케치(좌) → 생성된 이모티콘(우)</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">03 / 15</span></div>
+</section>
+
+<!-- ===== 4. 사용 기술 & 선정 이유 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">03</span><h2>사용 기술 & 선정 이유</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">각 기술은 특정 문제를 풀기 위해 선택했습니다</div>
+    <div class="row">
+      <div class="card reveal d1"><div class="ico">🧠</div><h3>SD v1.5</h3><p>SDXL보다 가벼워 Colab T4(12GB)·M1에 적합. LoRA·ControlNet 생태계 풍부.</p><span class="badge bp">경량</span></div>
+      <div class="card reveal d2"><div class="ico">🎀</div><h3>LoRA rank=32</h3><p>860MB 전체 대신 <b>26MB만</b> 학습. attention Q/K/V에 저랭크 행렬로 스타일 주입.</p><span class="badge bl">0.7%</span></div>
+      <div class="card reveal d3"><div class="ico">🧭</div><h3>ControlNet scribble</h3><p>거친 손그림에 특화. canny edge보다 관대 — 아마추어 스케치에 최적.</p><span class="badge bm">형태유지</span></div>
+    </div>
+    <div class="row">
+      <div class="card reveal d3"><div class="ico">⚡</div><h3>DPMSolver++ 스케줄러</h3><p>적은 스텝에서도 품질 유지. 10~15스텝으로 CPU 추론 시간 단축. (UniPC IndexError 회피)</p><span class="badge bp">속도</span></div>
+      <div class="card reveal d4"><div class="ico">📐</div><h3>AdamW · lr 1e-5</h3><p>LoRA 파인튜닝 표준 lr. 1e-4에서 이미지 붕괴 경험 → 10배 낮춰 안정화. fp32 강제(fp16 NaN).</p><span class="badge by">안정</span></div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">04 / 15</span></div>
+</section>
+
+<!-- ===== 5. 시스템 아키텍처 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">04</span><h2>시스템 아키텍처 / 파이프라인</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">손그림이 이모티콘이 되기까지 거치는 5단계</div>
+    <div class="pipe reveal d1">
+      <div class="st">✏️ 손그림<small>PNG 업로드</small></div><div class="arr">→</div>
+      <div class="st">🔲 이진화<small>선=검정/배경=흰</small></div><div class="arr">→</div>
+      <div class="st">🧭 ControlNet<small>scribble 조건</small></div><div class="arr">→</div>
+      <div class="st">🎨 SD+LoRA<small>노이즈 제거</small></div><div class="arr">→</div>
+      <div class="st">🐱 이모티콘<small>512×512 출력</small></div>
+    </div>
+    <div class="row">
+      <div class="card reveal d2"><div class="ico">🔲</div><h3>전처리 핵심</h3><p>정방형 패딩 → 이진화 → 512 리사이즈. 이진화 없으면 ControlNet이 조건을 못 읽음.</p></div>
+      <div class="card reveal d3"><div class="ico">🎛️</div><h3>주요 파라미터</h3><p>cn_scale 0.8 · guidance 7.5<br>steps 10~15 (CPU 최적화)</p></div>
+      <div class="card reveal d4"><div class="ico">💬</div><h3>고정 프롬프트</h3><p>pos: <em>"twemoji style, cute animal face…"</em><br>neg: realistic, photo, blurry</p></div>
+    </div>
+    <p class="lead reveal d4" style="margin-top:10px">※ 학습 워크플로우(노트북): Twemoji 수집 → 필터링·캡션 → LoRA 학습 → epoch 이어받기 → ControlNet 생성 → 곡선 시각화</p>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">05 / 15</span></div>
+</section>
+
+<!-- ===== 6. 데이터셋 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">05</span><h2>데이터셋 수집 · 정제 · 증강</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">Twemoji v14 오픈소스에서 동물 얼굴만 골라 5배 증강</div>
+    <div class="split" style="align-items:flex-start">
+      <div class="col">
+        <div class="bars reveal d1">
+          <div class="br"><span class="lbl">Twemoji 전체</span><div class="bar-track"><div class="bar-fill" data-w="100%" style="background:var(--sky)"></div></div><span class="num">3,689장</span></div>
+          <div class="br"><span class="lbl">사람·동물 필터</span><div class="bar-track"><div class="bar-fill" data-w="40%" style="background:var(--lav)"></div></div><span class="num">1,464장</span></div>
+          <div class="br"><span class="lbl">동물 얼굴만</span><div class="bar-track"><div class="bar-fill" data-w="12%" style="background:var(--pink)"></div></div><span class="num">46장</span></div>
+          <div class="br"><span class="lbl">증강 후 최종</span><div class="bar-track"><div class="bar-fill" data-w="62%" style="background:var(--mint)"></div></div><span class="num">230장</span></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="row" style="margin-top:0">
+          <div class="card reveal d2"><div class="ico">✂️</div><h3>필터링 기준</h3><p>국기·기호·사물·손 제스처 제거. 동물 얼굴 코드포인트 46개 선별 → 스타일 일관성 확보.</p></div>
+        </div>
+        <div class="row">
+          <div class="card reveal d3"><div class="ico">🏷️</div><h3>캡션</h3><p>전 이미지 동일 캡션 <em>"twemoji style, cute emoticon, flat color, white background"</em></p></div>
+        </div>
+        <div class="row">
+          <div class="card reveal d4"><div class="ico">🔄</div><h3>증강 (×5배)</h3><p>좌우반전 / 회전±8° / 밝기+12% · 동물 전처리(크롭·대비·선명도) → 46→230장.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">06 / 15</span></div>
+</section>
+
+<!-- ===== 7. 학습 설정 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">06</span><h2>학습 설정 (하이퍼파라미터)</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">각 설정을 선택한 이유</div>
+    <table class="ptable reveal d1">
+      <tr><th>항목</th><th>값</th><th>선택 이유</th></tr>
+      <tr><td>Loss 함수</td><td>MSE (noise pred)</td><td>DDPM 표준 — 노이즈 예측 오차 최소화</td></tr>
+      <tr><td>Optimizer</td><td>AdamW</td><td>weight decay 내장 → L2 정규화 효과</td></tr>
+      <tr><td>Learning Rate</td><td>1e-5 → 5e-6</td><td>1e-4에서 이미지 붕괴 → 10배 낮춰 안정화</td></tr>
+      <tr><td>Batch Size</td><td>1</td><td>Colab T4 / M1 메모리 한계</td></tr>
+      <tr><td>LoRA rank</td><td>32 (α=16)</td><td>표현력 확보. 데이터 적어 과적합 위험 존재</td></tr>
+      <tr><td>LoRA dropout</td><td>0.1</td><td>10% 레이어 끄기 → 특정 입력 과의존 방지</td></tr>
+      <tr><td>Target layers</td><td>to_q / k / v / out.0</td><td>UNet attention만 → 최소 파라미터 최대 효과</td></tr>
+      <tr><td>Data type</td><td>fp32</td><td>fp16에서 loss NaN 발생 → 수치 안정성 우선</td></tr>
+    </table>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">07 / 15</span></div>
+</section>
+
+<!-- ===== 8. 서사① 학습 진행 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">07</span><h2>학습 진행 — Epoch별 생성 샘플</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">같은 프롬프트로 epoch마다 샘플을 뽑아 변화를 기록했습니다</div>
+    <div class="gallery reveal d1">
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_0.png" alt="baseline"><span>baseline</span></div>
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_1.png" alt="e1"><span>epoch 1</span></div>
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_2.png" alt="e2"><span>epoch 2</span></div>
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_3.png" alt="e3"><span>epoch 3</span></div>
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_4.png" alt="e4"><span>epoch 4</span></div>
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_5.png" alt="e5"><span>epoch 5</span></div>
+      <div class="gitem best"><img src="emoticon_deck_assets/epoch_6.png" alt="e6"><span>epoch 6 ⭐</span></div>
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_7.png" alt="e7"><span>epoch 7</span></div>
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_8.png" alt="e8"><span>epoch 8</span></div>
+      <div class="gitem"><img src="emoticon_deck_assets/epoch_9.png" alt="e9"><span>epoch 9</span></div>
+      <div class="gitem bad"><img src="emoticon_deck_assets/epoch_10.png" alt="e10"><span>epoch 10 ⚠</span></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="card reveal d2" style="padding:9px 13px"><h3>🌫️ 초반 (baseline~e2)</h3><p>스타일 학습 전 — 형태는 잡히나 화풍 불안정.</p></div>
+      <div class="card reveal d3" style="padding:9px 13px"><h3>😺 중반 (e3~e6)</h3><p>굵은 외곽선·플랫 컬러 자리잡힘. <b>epoch 6 loss 최저</b>.</p></div>
+      <div class="card reveal d4" style="padding:9px 13px"><h3>⚠️ 후반 (e9~e10)</h3><p>과적합 — 여러 얼굴이 깨져 반복(붕괴) 발생.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">08 / 15</span></div>
+</section>
+
+<!-- ===== 9. 서사② 학습 곡선 분석 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">08</span><h2>학습 곡선 분석</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">230스텝/epoch × 10 = 총 2,300 스텝의 실제 loss</div>
+    <div class="stats reveal d1">
+      <div class="stat"><div class="sv"><span>10</span></div><div class="sl">총 Epoch</div></div>
+      <div class="stat"><div class="sv"><span>2,300</span></div><div class="sl">총 스텝</div></div>
+      <div class="stat"><div class="sv"><span>0.0383</span></div><div class="sl">최저 avg loss</div></div>
+      <div class="stat"><div class="sv">E<span>6</span></div><div class="sl">loss 최저</div></div>
+      <div class="stat"><div class="sv">E<span>7</span></div><div class="sl">최종 채택</div></div>
+    </div>
+    <div class="split" style="margin-top:6px">
+      <div class="col"><div class="imgbox reveal d2"><img src="emoticon_deck_assets/loss_avg.png" alt="epoch 평균 loss"></div><div class="cap">Epoch 평균 Loss — epoch 6에서 최저(0.0383)</div></div>
+      <div class="col"><div class="imgbox reveal d3"><img src="emoticon_deck_assets/loss_step.png" alt="step별 loss"></div><div class="cap">Step별 Loss — epoch 시작(E3·E7·E9)의 스파이크</div></div>
+    </div>
+    <p class="lead reveal d4" style="margin-top:8px">📌 epoch 시작마다 보이는 <b>스파이크는 체크포인트 이어받기 시 옵티마이저 상태가 초기화돼 생기는 정상 현상</b>. 수치상 최저는 E6이나, 시각적 선명도는 E7이 더 좋아 <b>최종 E7 채택</b>.</p>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">09 / 15</span></div>
+</section>
+
+<!-- ===== 10. 서사③ 문제 발견 & 개선 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">09</span><h2>문제 발견 & 개선</h2></div>
+  <div class="body">
+    <div class="split" style="align-items:flex-start">
+      <div class="col" style="flex:0 0 34%">
+        <div class="imgbox reveal d1"><img src="emoticon_deck_assets/epoch_10.png" alt="epoch10 붕괴" style="max-height:230px"></div>
+        <div class="cap">epoch 10 — 한 얼굴이 깨져 반복되는 과적합 붕괴</div>
+        <div class="imgbox reveal d2" style="margin-top:8px"><img src="emoticon_deck_assets/lr1e4_collapse.png" alt="lr 1e-4 붕괴 예시"></div>
+        <div class="cap">lr 1e-4 — 형체 붕괴 · 사람/동물 얼굴이 뒤섞임</div>
+      </div>
+      <div class="col">
+        <div class="sub reveal d1">관찰한 문제 → 개선책</div>
+        <div class="tlist">
+          <div class="t reveal d1"><b>후반 epoch 과적합/붕괴</b><span class="ft"><span class="fix">→ 개선</span> 수치 최저 E6가 아닌 <b>시각 품질 최고 E7 채택</b>, 데이터 ×5 증강·dropout 0.1로 정규화</span></div>
+          <div class="t reveal d2"><b>fp16 학습 → loss NaN</b><span class="ft"><span class="fix">→ 해결</span> fp32 전환. M1/T4에서 충분히 빠름, 수치 안정성 우선</span></div>
+          <div class="t reveal d2"><b>lr 1e-4 → 형체 붕괴 · 사람/동물 얼굴 뒤섞임</b><span class="ft"><span class="fix">→ 해결</span> 사람 얼굴이 동물과 섞여 나옴 → 10배 낮춰 1e-5→5e-6로 안정화</span></div>
+          <div class="t reveal d3"><b>Colab GPU 세션 만료로 중단</b><span class="ft"><span class="fix">→ 해결</span> epoch마다 체크포인트 저장 → epoch_8에서 이어학습(resume)</span></div>
+          <div class="t reveal d3"><b>동물 화풍 약함</b><span class="ft"><span class="fix">→ 개선</span> 동물 이미지 전처리 강화(크롭·대비·선명도) 후 추가 학습</span></div>
+          <div class="t reveal d4"><b>배포 OOM · 스케줄러 IndexError · 업로드 403</b><span class="ft"><span class="fix">→ 해결</span> HF Spaces 16GB 이전 · DPMSolver 교체 · XSRF 비활성</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">10 / 15</span></div>
+</section>
+
+<!-- ===== 11. 서사④ 최종 결과 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">10</span><h2>최종 결과</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">개선 후 — 다양한 손그림이 일관된 Twemoji 화풍 이모티콘으로</div>
+    <div class="results reveal d1">
+      <figure><img src="emoticon_deck_assets/ex_emoticon.png" alt="결과1"><figcaption>고양이 A</figcaption></figure>
+      <figure><img src="emoticon_deck_assets/result_2.png" alt="결과2"><figcaption>고양이 B</figcaption></figure>
+      <figure><img src="emoticon_deck_assets/result_3.png" alt="결과3"><figcaption>곰 A</figcaption></figure>
+      <figure><img src="emoticon_deck_assets/result_4.png" alt="결과4"><figcaption>곰 B</figcaption></figure>
+    </div>
+    <div class="row">
+      <div class="card reveal d2"><div class="ico">🎯</div><h3>달성</h3><p>거친 손그림에서도 굵은 외곽선·플랫 컬러의 이모티콘 화풍을 안정적으로 재현.</p></div>
+      <div class="card reveal d3"><div class="ico">🖐️</div><h3>형태 보존</h3><p>ControlNet scribble로 원본 손그림의 귀·수염·표정 구도를 유지.</p></div>
+      <div class="card reveal d4"><div class="ico">✨</div><h3>변환 일관성</h3><p>입력이 달라도 동일한 스타일로 통일 — 이모티콘 세트 제작 가능성 확인.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">11 / 15</span></div>
+</section>
+
+<!-- ===== 12. 분석 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">11</span><h2>분석 — 생성 품질 · 가중치 · 데이터</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">Streamlit 분석 페이지 6종으로 모델을 다각도 검증</div>
+    <div class="row">
+      <div class="card reveal d1"><div class="ico">👁️</div><h3>생성 품질</h3><p>epoch별 동일 프롬프트 샘플의 스타일 일관성·선명도 육안 평가.</p></div>
+      <div class="card reveal d2"><div class="ico">📊</div><h3>이미지 통계</h3><p>밝기·채도·색 다채로움 측정 — 이모티콘은 채도 높고 선명해야 함.</p></div>
+      <div class="card reveal d3"><div class="ico">🧮</div><h3>가중치 분석</h3><p>LoRA 어댑터(to_q/k/v/out) 가중치 분포로 학습이 attention에 집중됐는지 확인.</p></div>
+    </div>
+    <div class="row">
+      <div class="card reveal d2"><div class="ico">🔍</div><h3>EDA · 학습 리포트</h3><p>데이터 분포·캡션·증강 결과와 학습 메타(스텝·loss)를 리포트로 정리.</p></div>
+      <div class="card reveal d3"><div class="ico">📈</div><h3>학습 곡선</h3><p>training_loss.csv 기반 epoch 평균·step별 loss 자동 시각화.</p></div>
+      <div class="card reveal d4"><div class="ico">📋</div><h3>추후 계획</h3><p>정량 평가 — CLIP Score(프롬프트↔이미지), FID(Twemoji 분포 vs 생성).</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">12 / 15</span></div>
+</section>
+
+<!-- ===== 13. 배포 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">12</span><h2>배포 & 데모</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">Streamlit 멀티페이지 앱 + HuggingFace Spaces (Docker)</div>
+    <div class="deploy-box reveal d1">
+      <b style="font-family:'Jua'">🚀 라이브 데모</b>
+      <div class="durl">https://huggingface.co/spaces/eunseok22/emoticon-lora</div>
+      <div class="chips">
+        <span class="chip">Docker SDK</span><span class="chip">CPU Basic 16GB</span>
+        <span class="chip">Git LFS safetensors</span><span class="chip">Streamlit 멀티페이지</span>
+      </div>
+    </div>
+    <div class="row">
+      <div class="card reveal d2"><div class="ico">🏠</div><h3>메인 앱</h3><p>손그림 업로드 → LoRA+ControlNet 변환 → 이모티콘 저장</p></div>
+      <div class="card reveal d3"><div class="ico">📊</div><h3>분석 6페이지</h3><p>학습리포트 · 그래프 · EDA · 가중치분석 · 생성품질 · 학습곡선</p></div>
+      <div class="card reveal d4"><div class="ico">📓</div><h3>노트북 연동</h3><p>Jupyter에서 그래프 생성 → PNG 저장 → Streamlit에 표시</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">13 / 15</span></div>
+</section>
+
+<!-- ===== 14. 결론 & 느낀 점 ===== -->
+<section class="slide">
+  <div class="hbar"><span class="num">13</span><h2>결론 & 느낀 점</h2></div>
+  <div class="body">
+    <div class="sub reveal d1">제한된 자원에서 생성형 AI 파인튜닝 전 과정을 직접 경험</div>
+    <div class="twocol">
+      <div class="box learn reveal d1">
+        <h4>💚 배운 점</h4>
+        <p>LoRA로 전체의 0.7% 파라미터만 학습해도 화풍을 입힐 수 있음을 체감. 적은 데이터(230장)에서 정규화·증강의 중요성을 확인.</p>
+        <p>loss 최저 ≠ 시각 품질 최고 — 정량 지표와 사람 눈의 차이를 epoch 6 vs 7로 직접 경험.</p>
+        <p>체크포인트 이어학습, fp32 강제, 스케줄러 교체 등 실전 트러블슈팅 역량 확보.</p>
+      </div>
+      <div class="box regret reveal d2">
+        <h4>🤍 아쉬운 점 · 다음 단계</h4>
+        <p>CLIP Score·FID 등 정량 평가를 적용하지 못함 — 다음엔 학습 루프에 자동 평가를 넣을 계획.</p>
+        <p>데이터가 동물 얼굴 위주라 표정·소품 다양성 부족. 캡션 다양화로 확장 여지.</p>
+        <p>후반 epoch 과적합 — Early Stopping·EMA 도입으로 안정화 가능.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">14 / 15</span></div>
+</section>
+
+<!-- ===== 15. 마무리 ===== -->
+<section class="slide" id="end">
+  <div class="hbar"><span class="num">14</span><h2>감사합니다</h2></div>
+  <div class="body" style="justify-content:center;align-items:center;text-align:center">
+    <h1 style="font-family:'Jua';font-size:2rem;color:var(--ink)" class="reveal d1">이은석</h1>
+    <p class="lead reveal d2" style="margin:6px auto 12px">생성형 AI 파인튜닝</p>
+    <div class="reveal d3">
+      <span class="tag">Python</span><span class="tag">PyTorch</span><span class="tag">Diffusers</span>
+      <span class="tag">LoRA / PEFT</span><span class="tag">ControlNet</span><span class="tag">Streamlit</span>
+      <span class="tag">HuggingFace</span><span class="tag">Docker</span><span class="tag">Git LFS</span>
+    </div>
+    <p class="lead reveal d4" style="margin-top:14px">🚀 라이브 데모 · huggingface.co/spaces/eunseok22/emoticon-lora</p>
+  </div>
+  <div class="foot"><span>손그림이 이모티콘이 되기까지</span><span class="pg">15 / 15</span></div>
+</section>
+
+<!-- 네비게이션 -->
+<div class="navzone left" id="navL"></div>
+<div class="navzone right" id="navR"></div>
+<div class="dots" id="dots"></div>
+<div class="arrows"><button id="prev">‹</button><button id="next">›</button></div>
+</div>
+
+<script>
+const slides=[...document.querySelectorAll('.slide')];
+const dots=document.getElementById('dots');
+const prevB=document.getElementById('prev'),nextB=document.getElementById('next');
+let cur=0;
+slides.forEach((s,i)=>{const b=document.createElement('button');b.onclick=()=>go(i);dots.appendChild(b)});
+const de=[...dots.children];
+slides.forEach((s,i)=>{
+  const num=s.querySelector('.hbar .num');if(num)num.textContent=String(i).padStart(2,'0');
+  const pg=s.querySelector('.foot .pg');if(pg)pg.textContent=String(i+1).padStart(2,'0')+' / '+slides.length;
+});
+
+function applyBars(s){
+  s.querySelectorAll('.bar-fill').forEach(b=>{b.style.width='0';requestAnimationFrame(()=>b.style.width=b.dataset.w)});
+}
+function go(i){
+  i=Math.max(0,Math.min(slides.length-1,i));
+  slides[cur].classList.remove('active');
+  cur=i;
+  const s=slides[cur];
+  s.classList.add('active');
+  if(s.id==='cover'){s.classList.remove('cover-on');void s.offsetWidth;s.classList.add('cover-on');}
+  applyBars(s);
+  de.forEach((d,j)=>d.classList.toggle('active',j===cur));
+  prevB.disabled=cur===0;nextB.disabled=cur===slides.length-1;
+}
+prevB.onclick=()=>go(cur-1);
+nextB.onclick=()=>go(cur+1);
+document.getElementById('navL').onclick=()=>go(cur-1);
+document.getElementById('navR').onclick=()=>go(cur+1);
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ')go(cur+1);
+  if(e.key==='ArrowLeft'||e.key==='PageUp')go(cur-1);
+  if(e.key==='Home')go(0);if(e.key==='End')go(slides.length-1);
+});
+go(0);
+</script>
+</body>
+</html>
